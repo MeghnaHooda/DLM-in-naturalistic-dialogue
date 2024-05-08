@@ -1,0 +1,253 @@
+---
+title: "Long Before Short Analysis"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+date: "2024-05-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+```
+
+# Argument Analysis
+## a. Dialogue Data
+
+1. Load the Data
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Stats for Dialogue Data
+word_order_data<- read.csv("Argument/token_wise_nsubj_obj.csv", header=TRUE)
+str(word_order_data)
+#head(word_order_data)
+
+```
+2. Processing the Data
+```{r warning=FALSE,message=FALSE}
+word_order_data$File_unique<-paste(word_order_data$File, word_order_data$Sent_ID, sep="")
+
+#Three conditions for subj obj length
+word_order_data$length_condition<-
+  ifelse(word_order_data$sub_subset_length>word_order_data$obj_subset.length,'S_Long',
+  ifelse(word_order_data$sub_subset_length<word_order_data$obj_subset.length,'O_Long','Equal'))
+
+word_order_data$length_condition<-as.factor(word_order_data$length_condition)
+
+#Subset Transitive Data
+Transitive_Data <- subset(word_order_data, word_order_data$Category=='Transitive')
+
+#Order: SOV=0 OSV=1
+Transitive_Data$Order<- ifelse(Transitive_Data$Word.Order=="SOV",0,1)
+
+#Contrast
+
+# Treatment Contrast
+#-------------------
+# S-Long   O-Long
+# ---------------
+#   1        0
+#   0        1
+#  -1       -1
+#-------------------
+
+#Contrast matrix:
+#  OLong SLong
+#Equal -1/3  -1/3 
+#OL     2/3  -1/3 
+#SL    -1/3   2/3 
+
+Transitive_Data$S_Long<-ifelse(Transitive_Data$length_condition=="S_Long",2/3,-1/3)
+Transitive_Data$O_Long<-ifelse(Transitive_Data$length_condition=="O_Long",2/3,-1/3)
+
+
+Transitive_Data$dependency.length<- scale(Transitive_Data$dependency.length)
+
+summary(Transitive_Data)
+
+```
+3. Fitting Generalized linear model
+```{r warning=FALSE,message=FALSE}
+m1<-glm(Order~S_Long+O_Long,
+        data=Transitive_Data,
+        family="binomial"
+             )
+
+summary(m1)
+
+m2<-glm(Order~(S_Long+O_Long)*dependency.length,
+        data=Transitive_Data,
+        family="binomial"
+)
+
+summary(m2)
+```
+
+# b. Written Text Data
+
+1. Load the Data
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+word_order_data_txt = data <- read.csv("Argument/token_wise_nsubj_obj_txt.csv", header=TRUE)
+#head(word_order_data_txt)
+str(word_order_data_txt)
+```
+
+2. Processing the Data
+```{r warning=FALSE,message=FALSE}
+word_order_data_txt$File_unique<-paste(word_order_data_txt$File, word_order_data_txt$Sent_ID, sep="")
+
+word_order_data_txt$length_condition<-
+  ifelse(word_order_data_txt$sub_subset_length>word_order_data_txt$obj_subset.length,'S_Long',
+         ifelse(word_order_data_txt$sub_subset_length<word_order_data_txt$obj_subset.length,'O_Long','Equal'))
+
+
+#Subset Transitive Data
+Transitive_Data_txt <- subset(word_order_data_txt, word_order_data_txt$Category=='Transitive')
+
+#Order: SOV=0 OSV=1
+Transitive_Data_txt$Order<- ifelse(Transitive_Data_txt$Word.Order=="SOV",0,1)
+
+# Treatment Contrast
+#-------------------
+# S-Long   O-Long
+# ---------------
+#   1        0
+#   0        1
+#  -1       -1
+#-------------------
+
+#Contrast matrix:
+#  OLong SLong
+#Equal -1/3  -1/3 
+#OL     2/3  -1/3 
+#SL    -1/3   2/3 
+
+Transitive_Data_txt$S_Long<-ifelse(Transitive_Data_txt$length_condition=="S_Long",2/3,-1/3)
+Transitive_Data_txt$O_Long<-ifelse(Transitive_Data_txt$length_condition=="O_Long",2/3,-1/3)
+
+Transitive_Data_txt$dependency.length<- scale(Transitive_Data_txt$dependency.length)
+
+summary(Transitive_Data_txt)
+```
+3. Fitting Generalized linear model
+
+```{r warning=FALSE,message=FALSE}
+m1_txt<-glm(Order~S_Long+O_Long,
+        data=Transitive_Data_txt,
+        family="binomial"
+)
+
+summary(m1_txt)
+
+m2_txt<-glm(Order~(S_Long+O_Long)*dependency.length,
+            data=Transitive_Data_txt,
+            family="binomial"
+)
+
+summary(m2_txt)
+```
+
+# Adjuncts
+## a. Dialogue Data
+
+1. Load the Data
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Stats for Dialogue Data
+word_order_data<- read.csv("Adjuncts/token_wise_nsubj_obl.csv", header=TRUE)
+str(word_order_data)
+#head(word_order_data)
+
+```
+2. Processing the Data
+```{r warning=FALSE,message=FALSE}
+Transitive_Data_AdjSV<- subset(word_order_data, word_order_data$Category %in% c('obl_sv','s_obl_v'))
+
+head(Transitive_Data_AdjSV)
+
+#Three conditions for subj obj length
+Transitive_Data_AdjSV$length_condition<-
+  ifelse(Transitive_Data_AdjSV$sub_subset_length>Transitive_Data_AdjSV$obl_subset_length,'S_Long',
+         ifelse(Transitive_Data_AdjSV$sub_subset_length<Transitive_Data_AdjSV$obl_subset_length,'Adj_Long','Equal'))
+
+Transitive_Data_AdjSV$Order1<- ifelse(Transitive_Data_AdjSV$Category=="s_obl_v",0,1)
+Transitive_Data_AdjSV$Order2<- ifelse(Transitive_Data_AdjSV$Category=="obl_sv",0,1)
+
+Transitive_Data_AdjSV$S_Long<-ifelse(Transitive_Data_AdjSV$length_condition=="S_Long",2/3,-1/3)
+Transitive_Data_AdjSV$Adj_Long<-ifelse(Transitive_Data_AdjSV$length_condition=="Adj_Long",2/3,-1/3)
+
+Transitive_Data_AdjSV$Average.Dependency <- scale(Transitive_Data_AdjSV$Average.Dependency)
+
+summary(Transitive_Data_AdjSV)
+
+```
+3. Fitting Generalized linear model
+```{r warning=FALSE,message=FALSE}
+m1<-glm(Order1~S_Long+Adj_Long,
+        data=Transitive_Data_AdjSV,
+        family="binomial"
+)
+
+summary(m1)
+
+m1_2<-glm(Order1~(S_Long+Adj_Long)*Average.Dependency,
+        data=Transitive_Data_AdjSV,
+        family="binomial"
+)
+
+summary(m1_2)
+
+```
+
+# b. Written Text Data
+
+1. Load the Data
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+word_order_data_txt = data <- read.csv("Adjuncts/token_wise_nsubj_obl_txt.csv", header=TRUE)
+#head(word_order_data_txt)
+str(word_order_data_txt)
+```
+
+2. Processing the Data
+```{r warning=FALSE,message=FALSE}
+Transitive_Data_AdjSV_txt<- subset(word_order_data_txt, word_order_data_txt$Category %in% c('obl_sv','s_obl_v'))
+
+head(Transitive_Data_AdjSV_txt)
+
+#Three conditions for subj obj length
+Transitive_Data_AdjSV_txt$length_condition<-
+  ifelse(Transitive_Data_AdjSV_txt$sub_subset_length>Transitive_Data_AdjSV_txt$obl_subset_length,'S_Long',
+         ifelse(Transitive_Data_AdjSV_txt$sub_subset_length<Transitive_Data_AdjSV_txt$obl_subset_length,'Adj_Long','Equal'))
+
+
+Transitive_Data_AdjSV_txt$Order1<- ifelse(Transitive_Data_AdjSV_txt$Category=="s_obl_v",0,1)
+Transitive_Data_AdjSV_txt$Order2<- ifelse(Transitive_Data_AdjSV_txt$Category=="obl_sv",0,1)
+
+Transitive_Data_AdjSV_txt$S_Long<-ifelse(Transitive_Data_AdjSV_txt$length_condition=="S_Long",2/3,-1/3)
+Transitive_Data_AdjSV_txt$Adj_Long<-ifelse(Transitive_Data_AdjSV_txt$length_condition=="Adj_Long",2/3,-1/3)
+
+Transitive_Data_AdjSV_txt$Average.Dependency <- scale(Transitive_Data_AdjSV_txt$Average.Dependency)
+
+summary(Transitive_Data_AdjSV_txt)
+```
+
+3. Fitting Generalized linear model
+
+```{r warning=FALSE,message=FALSE}
+m1_txt<-glm(Order1~S_Long+Adj_Long,
+            data=Transitive_Data_AdjSV_txt,
+            family="binomial"
+)
+
+summary(m1_txt)
+
+m1_II_txt <- glm(Order1~(S_Long+Adj_Long)*Average.Dependency,
+                 data=Transitive_Data_AdjSV_txt,
+                 family = "binomial")
+
+summary(m1_II_txt)
+```

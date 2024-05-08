@@ -1,0 +1,90 @@
+---
+title: "Right Extraposition"
+output:
+    pdf_document:
+      latex_engine: xelatex
+date: "2024-05-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+```
+# Dialgoue Data
+
+1. Processing the Data
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+non_projective_data <- read.csv("non_projective.csv", header=TRUE)
+
+insitu_data <- read.csv("nmod_relcl_sentences.csv")
+
+insitu_data$Type <- rep(0,times=length(insitu_data$Length))
+
+non_projective_data <- subset(non_projective_data, select = -c(8,10,5) )
+
+colnames(non_projective_data)[7] ="Category"
+
+non_projective_data$Type <- rep(1,times=length(non_projective_data$Length))
+
+Combined_data <- rbind(insitu_data, non_projective_data)
+
+Combined_data$Dependency.Length <- scale(Combined_data$Dependency.Length)
+Combined_data$dep_Length <- scale(Combined_data$dep_Length)
+
+head(Combined_data)
+
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(Combined_data, aes(x=Category)) + geom_histogram(stat='count') +facet_wrap(~Type)
+```
+
+3. Fitting generalized lin-
+ear mode
+```{r warning=FALSE, message=FALSE}
+m_com <- glm(Type~dep_Length*Dependency.Length, 
+             data=Combined_data,
+             family = "binomial")
+summary(m_com)
+```
+
+# Written Text Data (HDTB)
+
+1. Processing the Data
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+non_projective_data_txt <- read.csv("non_projective_txt.csv", header=TRUE)
+
+insitu_data_txt <- read.csv("nmod_relcl_sentences_txt.csv")
+
+
+insitu_data_txt$Type <- rep(0,times=length(insitu_data_txt$Length))
+
+non_projective_data_txt <- subset(non_projective_data_txt, select = -c(8,10,5) )
+
+colnames(non_projective_data_txt)[7] ="Category"
+
+non_projective_data_txt$Type <- rep(1,times=length(non_projective_data_txt$Length))
+
+Combined_data_txt <- rbind(insitu_data_txt, non_projective_data_txt)
+
+Combined_data_txt$Dependency.Length <- scale(Combined_data_txt$Dependency.Length)
+Combined_data_txt$dep_Length <- scale(Combined_data_txt$dep_Length)
+
+head(Combined_data_txt)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+ggplot(Combined_data_txt, aes(x=Category)) + geom_histogram(stat='count') +facet_wrap(~Type)
+```
+
+3. Fitting generalized linear mode
+```{r warning=FALSE, message=FALSE}
+m_com_txt <- glm(Type~dep_Length*Dependency.Length, 
+             data=Combined_data_txt,
+             family = "binomial")
+summary(m_com_txt)
+```

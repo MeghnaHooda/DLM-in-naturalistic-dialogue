@@ -1,0 +1,165 @@
+---
+title: "Text to Speech Comparison"
+output: html_document
+date: "2023-08-11"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+```
+
+RLAs Baselines of Dialogue Corpus Including Phase3 6 files(Token and disflueiencies removed)
+
+1. Load the data
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Load the Data
+Data.RLA.wo.tags <- read.table('../Data_Dialouge/Phase123_wo_tag_dis/RLAs.csv',sep = "\t", header = FALSE)
+
+#Providing Column Names
+colnames(Data.RLA.wo.tags) <- c("lang","dtype","sent_id","length","max_arity","avg_arity","projD","gapD","illnest","edgex","dir","dd","HD","proj","edgeD","endPoint","HDD")
+
+Data.RLA.wo.tags$dd<-Data.RLA.wo.tags$dd+1
+
+#Group Sentences 
+Data.RLA <- Data.RLA.wo.tags %>% group_by(lang,dtype,sent_id,length,avg_arity,max_arity,projD) %>% summarise(avgHD=mean(HD),avgDD=mean(dd))
+
+#Save the Sentence wise baseline file for further use
+write.csv(Data.RLA,file='RLAs_grouped_2.csv', row.names=FALSE)
+
+#Plot a length wise historgram of the sentences used
+ggplot(Data.RLA, aes(x=length))+
+  geom_histogram(stat="count", color="white", fill="#8E8D89") +
+  geom_vline(data= Data.RLA, aes(xintercept = mean(length)), color="#E74C3C")+
+  annotate("text",                        # Add text for mean
+           x = 9.5,
+           y =3000,
+           label = paste("Mean =", round(mean(Data.RLA$length), digit=2)),
+           col="#E74C3C",
+           size = 3)+
+  geom_vline(data= Data.RLA, aes(xintercept = median(length)), color="#2980B9")+ 
+  annotate("text",                        # Add text for mean
+           x = 9.5,
+           y =3200,
+           label = paste("Median =", median(Data.RLA$length)),
+           col="#2980B9",
+           size = 3)+
+  xlab("Sentence Length")+
+  ylab("Count")
+
+#mean(Data.RLA$length)
+#sd(Data.RLA$length)
+
+#Removing sentence with length greater than 2
+Data.RLA<- subset(Data.RLA, length>2)
+
+#Scale the sentence length
+Data.RLA$length <- scale(Data.RLA$length)
+Data.RLA <- as.data.frame(Data.RLA)
+
+summary(Data.RLA)
+
+```
+
+2. Fit the lmer model
+
+```{r warning=FALSE,message=FALSE}
+#Running the model
+#Avg Dependency Length ~ Sentence Length * Tree Type(Sentence Length * Tree Type | File ID)
+
+m1.RLA <- lmer(avgDD~length*dtype+(length*dtype|lang),data=Data.RLA,control=lmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+summary(m1.RLA)
+
+```
+
+3. Plot fitted regression
+
+```{r echo=FALSE}
+#Save the predicted values in a table
+
+predicted <- predict(m1.RLA,re.form=NA)
+Data.RLA$predicted <- predicted
+
+newdat <- expand.grid(length=sort(unique(Data.RLA$length)),dtype=c("random","real"), avgDD = 0)
+
+newdat$avgDD <- predict(m1.RLA,newdat,re.form=NA)
+
+
+mm <- model.matrix(terms(m1.RLA),newdat)
+pvar1 <- diag(mm %*% tcrossprod(vcov(m1.RLA),mm))
+
+newdat$CI.upper <- newdat$avgDD+(1.96*sqrt(pvar1))
+newdat$CI.lower <- newdat$avgDD-(1.96*sqrt(pvar1))
+
+newdat$dtype <- ifelse(newdat$dtype=='real','Real','Random baseline')
+
+#Ploting the graph
+baseline <- ggplot(newdat,aes(x=length,y=avgDD,group=dtype,fill=dtype))
+baseline+geom_line(aes(colour=dtype),size=1.2)+geom_ribbon(aes(ymin=CI.lower,ymax=CI.upper),alpha=0.15)+ylab('Dependency length')+xlab('Sentence length')+theme(legend.title = element_blank())+scale_color_manual(values=c("#2980B9","#E74C3C"))+scale_fill_manual(values=c("#2980B9","#E74C3C"))+theme(legend.position="top")
+
+newdat.RLA <- newdat
+newdat.RLA$baseline <- rep('RLA',length(newdat$length))
+```
+
+RLAs Written Data (HDTB Data)
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+Data.m.txt.RLA <- read.table('../Data_Text/RLAs_hi.csv',sep = ",", header = TRUE)
+
+#Scale the Sentence Length
+Data.m.txt.RLA <- Data.m.txt.RLA %>% group_by(lang, dtype,sent_id,length,avg_arity,max_arity,projD) %>% summarise(avgHD=mean(HD),avgDD=mean(dd))
+
+#Save the Sentence wise baseline file for further use
+write.csv(Data.RLA,file='RLAs_grouped_2.csv', row.names=FALSE)
+```
+
+RLAs New Distributed (Dialogue_Phase Vs Hindi_Text)
+
+a. Load the Data
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Load the combined data obtained from equal_dist_dialogue_written.py
+Data.m.RLA<-read.table('./new_combined_out_2.csv',sep = ",", header = TRUE)
+summary(Data.m.RLA)
+
+Data.m.RLA$dtype<-ifelse(Data.m.RLA$dtype=="real",paste(Data.m.RLA$dtype,Data.m.RLA$Genre,sep="_"),"random")
+
+#Scale the Sentence Length
+Data.m.RLA$length <- scale(Data.m.RLA$length)
+
+#Data.m.RLA$Genre<-as.factor(Data.m.RLA$Genre)
+Data.m.RLA$dtype<-as.factor(Data.m.RLA$dtype)
+
+```
+
+b. Fit the lm Model
+
+```{r rcho=False}
+#setting up sum contrast
+contrasts(Data.m.RLA$dtype)
+
+#Avg Dependency Length ~ Sentence Length * Tree Type
+m1.m.RLA<- lm(avgDD~length*dtype, data = Data.m.RLA)
+
+summary(m1.m.RLA)
+```
+
+c. Plot a graph
+
+```{r echo=FALSE}
+Data.m.RLA$dtype <- ifelse(Data.m.RLA$dtype=='real_Dialouge','Dialogue',
+                           ifelse(Data.m.RLA$dtype=='real_Text','Written', 'Random'))
+
+ggplot(Data.m.RLA,aes(x=length,y=avgDD,fill=dtype, colour=dtype))+
+  stat_smooth(method="lm",level=0.95)+
+  ylab('Dependency length')+
+  xlab('Sentence length')+
+  scale_color_manual(values=c("#2980B9","#E74C3C","#AFE1AF"))+                                      
+  scale_fill_manual(values=c("#2980B9","#E74C3C","#AFE1AF"))+
+  theme(legend.title = element_blank())+theme(legend.position="top")
+
+```
+

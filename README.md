@@ -13,7 +13,7 @@ Himanshu Yadav, Shubham Mittal, Samar Husain; A Reappraisal of Dependency Length
 "graphs" consist of graphs obtained from the Analysis
 
 Section 2 DLM during dialogue and Section 4 DLM in speech vs written text:<br />
-"DLM Baseline" is for the analysis of dependency length minimisation in Dialogue Cropus and Speech Vs Written text analysis<br />
+"DLM_during_dialogue and DLM in speech vs written text" is for the analysis of dependency length minimisation in Dialogue Cropus and Speech Vs Written text analysis<br />
 
 Section 3 What drives DLM?:<br />
 3.1 Long-before-short order: "Long Before Short" is to recognise and analyse long before short order for arguments and adjuncts.<br />
@@ -25,4 +25,4 @@ They all consists of:
 3. pdf file obtained from the rmd file which shows the data structure and model output
 4. Output of the python file
 
-For more details and pre-print of the paper go to https://osf.io/vxd6w/
+For more details about the project and pre-print of the paper go to https://osf.io/vxd6w/

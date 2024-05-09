@@ -15,7 +15,7 @@ Himanshu Yadav, Shubham Mittal, Samar Husain; A Reappraisal of Dependency Length
 Section 2 DLM during dialogue and Section 4 DLM in speech vs written text:<br />
 "DLM Baseline" is for the analysis of dependency length minimisation in Dialogue Cropus and Speech Vs Written text analysis<br />
 
-Section 3 What drives DLM?:
+Section 3 What drives DLM?:<br />
 3.1 Long-before-short order: "Long Before Short" is to recognise and analyse long before short order for arguments and adjuncts.<br />
 3.2 Right-extraposition: "Right Extraposition" is to collect non project instances and analyse them.<br />
 
